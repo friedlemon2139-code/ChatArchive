@@ -1,0 +1,14 @@
+{
+  "name": "geas-chat-export",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Geas 채팅 내보내기 도구 (젠잇·루나톡 → 단일 HTML)",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- CSP:START -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https://qvra.pages.dev https://vqrn.pages.dev; connect-src https://qvra.pages.dev https://vqrn.pages.dev; form-action 'none'; base-uri 'none'; frame-ancestors 'none'">
+<!-- CSP:END -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>루나톡 대화 저장 (붙여넣기)</title>
+<meta name="description" content="루나톡 대화 화면의 글을 복사해 붙여 넣으면 HTML 파일로 저장합니다.">
+<style>
+/* 문서 우선(document-first) 중립 스타일. 웹폰트·외부 CSS를 쓰지 않는다. */
+
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f6f7f9;
+  --ink: #1f2328;
+  --ink-2: #57606a;
+  --ink-3: #8b949e;
+  --line: #d0d7de;
+  --accent: #2563eb;
+  --danger: #b42318;
+
+  --sans: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Consolas, "D2Coding", monospace;
+  --maxw: 760px;
+  --pad: clamp(1rem, 5vw, 2rem);
+  --radius: 6px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --bg-subtle: #161a20;
+    --ink: #e6e8eb;
+    --ink-2: #a3acb8;
+    --ink-3: #6e7781;
+    --line: #2b313a;
+    --accent: #5b8def;
+    --danger: #f97066;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 3rem var(--pad) 5rem; }
+
+/* ── 헤더 ── */
+
+.head { padding-bottom: 1.5rem; border-bottom: 1px solid var(--line); }
+.head h1 { margin: 0 0 0.4rem; font-size: 24px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; }
+.head p { margin: 0; color: var(--ink-2); font-size: 0.95rem; }
+
+h2 {
+  margin: 3rem 0 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.5;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.lead { margin: 2rem 0 0; color: var(--ink-2); font-size: 0.95rem; }
+
+/* ── 3단계 ── */
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin: 1.5rem 0 0; }
+.step { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.step .num { display: block; font-size: 0.72rem; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 0.35rem; }
+.step > b { display: block; font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
+.step p { margin: 0; color: var(--ink-2); font-size: 0.875rem; line-height: 1.65; }
+
+/* ── 북마클릿 ── */
+
+.dragzone {
+  margin: 1.5rem 0 0;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+}
+a.bookmarklet {
+  display: inline-block;
+  padding: 0.7rem 2.2rem;
+  background: var(--accent); color: #ffffff;
+  border: 1px solid var(--accent); border-radius: 999px;
+  font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.5;
+  cursor: grab; user-select: none;
+}
+a.bookmarklet:hover { text-decoration: none; filter: brightness(1.08); }
+a.bookmarklet:active { cursor: grabbing; }
+.dragzone .drag-note { margin: 1rem 0 0; color: var(--ink); font-size: 0.9rem; }
+.dragzone .drag-sub { margin: 0.25rem 0 0; color: var(--ink-3); font-size: 0.825rem; }
+
+/* ── 탭 ── */
+
+.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; }
+.tabs button {
+  font-family: inherit; font-size: 0.875rem; line-height: 1.5;
+  padding: 0.35rem 0.9rem;
+  color: var(--ink-2); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer;
+}
+.tabs button:hover { background: var(--bg-subtle); }
+.tabs button.active { color: var(--ink); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tabpane { display: none; }
+.tabpane.active { display: block; }
+.tabpane > p { margin: 0 0 1rem; color: var(--ink-2); font-size: 0.925rem; }
+
+figure.shot {
+  margin: 1rem 0 0; padding: 0;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+figure.shot img { display: block; width: 100%; height: auto; min-height: 100px; background: var(--bg-subtle); }
+figure.shot figcaption { padding: 0.6rem 0.9rem; color: var(--ink-2); font-size: 0.85rem; border-top: 1px solid var(--line); }
+
+/* ── 2단 카드 ── */
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.card h3 { margin: 0 0 0.35rem; font-size: 0.95rem; font-weight: 600; }
+.card p { margin: 0; color: var(--ink-2); font-size: 0.875rem; line-height: 1.7; }
+
+/* ── FAQ ── */
+
+.faq details {
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0;
+}
+.faq details:first-child { border-top: 1px solid var(--line); }
+.faq summary { cursor: pointer; font-size: 0.95rem; font-weight: 500; list-style-position: outside; }
+.faq summary::marker { color: var(--ink-3); }
+.faq details[open] summary { margin-bottom: 0.5rem; }
+.faq p { margin: 0 0 0.6rem; color: var(--ink-2); font-size: 0.9rem; }
+.faq p:last-child { margin: 0; }
+
+/* ── 개인정보 ── */
+
+.privacy {
+  margin: 2.5rem 0 0;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+}
+.privacy p { margin: 0 0 0.5rem; color: var(--ink-2); font-size: 0.9rem; }
+.privacy p:last-child { margin: 0; }
+.privacy b { color: var(--ink); font-weight: 600; }
+
+/* ── 잡다 ── */
+
+code { font-family: var(--mono); font-size: 0.875em; background: var(--bg-subtle); border-radius: 3px; padding: 0.1em 0.35em; }
+kbd {
+  font-family: var(--mono); font-size: 0.85em;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+  padding: 0.05em 0.4em; color: var(--ink); background: var(--bg-subtle);
+}
+
+.foot {
+  margin-top: 3rem; padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3); font-size: 0.8rem;
+}
+.foot p { margin: 0; }
+
+/* ── 붙여넣기 화면 ── */
+
+.steps-list { list-style: none; margin: 1.5rem 0 0; padding: 0; }
+.steps-list li { display: flex; gap: 0.55rem; margin: 0 0 0.5rem; color: var(--ink-2); font-size: 0.925rem; }
+.steps-list li:last-child { margin-bottom: 0; }
+.steps-list .n { flex: none; color: var(--ink-3); }
+.steps-list b { color: var(--ink); font-weight: 600; }
+
+.field { margin: 1.5rem 0 0; }
+.field > label { display: block; margin-bottom: 0.4rem; color: var(--ink-2); font-size: 0.875rem; }
+
+textarea#paste {
+  display: block; width: 100%; min-height: 16rem; resize: vertical;
+  padding: 0.75rem 0.9rem;
+  color: var(--ink); background: var(--bg-subtle);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.6;
+}
+input#botname {
+  display: block; width: 100%; max-width: 22rem;
+  padding: 0.5rem 0.7rem;
+  color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  font-family: inherit; font-size: 0.95rem; line-height: 1.5;
+}
+
+.preview {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-subtle);
+}
+.preview p { margin: 0; }
+.preview .muted { color: var(--ink-3); font-size: 0.9rem; }
+.preview .kind { margin-bottom: 0.35rem; color: var(--ink-3); font-size: 0.8rem; letter-spacing: 0.02em; }
+.preview .count { font-size: 0.95rem; font-weight: 600; }
+.preview .warn { margin-top: 0.6rem; color: var(--danger); font-size: 0.875rem; }
+.preview .sample { margin: 0.75rem 0 0; font-size: 0.875rem; }
+.preview .sample dt { color: var(--ink-3); font-size: 0.8rem; }
+.preview .sample dd { margin: 0 0 0.6rem; color: var(--ink-2); }
+.preview .sample dd:last-child { margin-bottom: 0; }
+
+.actions { margin: 1.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+button#build, button#save {
+  padding: 0.6rem 1.8rem;
+  color: #ffffff; background: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--radius);
+  font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.5;
+  cursor: pointer;
+}
+button#build:hover:not(:disabled), button#save:hover { filter: brightness(1.08); }
+button#build:disabled { opacity: 0.45; cursor: not-allowed; }
+button#save[hidden] { display: none; }
+
+.result { margin: 0.75rem 0 0; color: var(--ink-2); font-size: 0.9rem; }
+.result.bad { color: var(--danger); }
+
+.body-note { margin: 0; color: var(--ink-2); font-size: 0.925rem; }
+
+/* ── 자기소개(이 파일이 하는 일) ── */
+
+.selfdesc-wrap { max-width: var(--maxw); margin: 0 auto; padding: 1.5rem var(--pad) 0; }
+.selfdesc {
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+}
+.selfdesc summary { cursor: pointer; font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+.selfdesc summary::marker { color: var(--ink-3); }
+.selfdesc[open] summary { margin-bottom: 0.6rem; }
+.selfdesc p { margin: 0 0 0.45rem; color: var(--ink-2); font-size: 0.875rem; line-height: 1.7; }
+.selfdesc p:last-child { margin: 0; }
+.selfdesc b { color: var(--ink); font-weight: 600; }
+.selfdesc code { font-size: 0.85em; word-break: break-all; }
+</style>
+</head>
+<body data-platform="luna">
+<!-- SELFDESC:START -->
+<div class="selfdesc-wrap">
+<details class="selfdesc" open>
+  <summary>이 파일이 하는 일</summary>
+  <p>이 페이지는 브라우저 안에서만 도는 도구입니다. 붙여 넣은 내용을 이 브라우저 안에서 정리해 HTML 파일로 저장합니다.</p>
+  <p>붙여 넣은 내용을 어디로도 보내지 않으며, 일체의 데이터를 수집하지 않습니다.</p>
+  <p><b>접근하는 주소:</b> 이미지를 내려받을 때만 <code>https://qvra.pages.dev</code> · <code>https://vqrn.pages.dev</code>. 그 외 주소로는 브라우저가 요청을 막도록 파일 안에 설정(Content-Security-Policy)되어 있습니다.</p>
+  <p><b>확인 방법:</b> 이 페이지에서 <kbd>Ctrl</kbd> + <kbd>U</kbd>(소스 보기)를 누르시면 코드 전체를 읽으실 수 있습니다. 브라우저에서 <kbd>F12</kbd> → 네트워크 탭을 열면 실제 요청을 볼 수 있습니다.</p>
+  <p><b>원본 코드:</b> <a href="https://github.com/friedlemon2139-code/ChatArchive">https://github.com/friedlemon2139-code/ChatArchive</a></p>
+  <p><b>해시:</b> 배포 공지 참조</p>
+  <p><b>파일로 내려받아 쓰기:</b> <a href="luna-tool.html" download>luna-tool.html</a> — 코드까지 한 장에 담긴 파일입니다. 내려받아 인터넷 없이 사용하실 수 있습니다.</p>
+</details>
+</div>
+<!-- SELFDESC:END -->
+<div class="wrap">
+
+  <header class="head">
+    <h1>루나톡 대화 저장 (붙여넣기)</h1>
+    <p>루나톡 대화 화면의 글을 복사해 붙여 넣으면 HTML 파일로 저장합니다.</p>
+  </header>
+
+  <ol class="steps-list">
+    <li><span class="n">&#9312;</span><span>루나톡에서 저장할 대화 화면을 엽니다. 화면에 불러와진 메시지가 저장되므로, 대화 전체를 저장하려면 위로 스크롤해 이전 메시지가 모두 화면에 불러와진 상태로 만듭니다.</span></li>
+    <li><span class="n">&#9313;</span><span>대화 영역의 <b>빈 곳</b>을 한 번 클릭한 뒤 <kbd>Ctrl</kbd> + <kbd>A</kbd>(전체 선택) &rarr; <kbd>Ctrl</kbd> + <kbd>C</kbd>(복사)로 복사합니다. 메시지 글자 위를 클릭한 상태에서는 그 메시지 하나만 선택될 수 있습니다.</span></li>
+    <li><span class="n">&#9314;</span><span>아래 칸에 <kbd>Ctrl</kbd> + <kbd>V</kbd>로 붙여 넣습니다.</span></li>
+    <li><span class="n">&#9315;</span><span>미리보기에서 턴 수와 이름을 확인하고 <b>파일 만들기</b>를 누릅니다.</span></li>
+  </ol>
+
+  <div class="field">
+    <label for="paste">복사한 글</label>
+    <textarea id="paste" spellcheck="false" autocomplete="off" placeholder="여기에 붙여 넣습니다."></textarea>
+  </div>
+
+  <div class="field">
+    <label for="botname">캐릭터 이름 (자동 인식, 필요하면 수정)</label>
+    <input id="botname" type="text" spellcheck="false" autocomplete="off">
+  </div>
+
+  <h2>미리보기</h2>
+  <div class="preview" id="preview" aria-live="polite"></div>
+
+  <p class="actions">
+    <button type="button" id="build" disabled>파일 만들기</button>
+    <button type="button" id="save" hidden>저장</button>
+  </p>
+  <p class="result" id="result" role="status" aria-live="polite" hidden></p>
+
+  <h2>저장되는 내용</h2>
+  <p class="body-note">대화 전체, 화자 구분, 글 서식, 상태창 블록, 이미지가 저장됩니다. 이미지는 파일 안에 포함되며 같은 이미지는 한 번만 들어갑니다. 작성 시각은 복사본에 없어 포함되지 않습니다. 붙여 넣은 내용이 글만일 때는 글만 저장됩니다.</p>
+
+  <div class="privacy">
+    <p><b>데이터 처리</b></p>
+    <p>이 도구는 일체의 데이터를 수집하지 않습니다. 붙여 넣은 글은 이 페이지 안에서만 처리되며 어디로도 전송되지 않습니다.
+    만들어진 파일은 사용 중인 컴퓨터의 다운로드 폴더에 남습니다.</p>
+    <p>이 페이지는 루나톡에 접속하지 않습니다. 붙여 넣은 내용에 이미지 주소가 있을 때만, 그 이미지를 파일에 넣기 위해
+    해당 주소에서 이미지를 내려받습니다. 내려받을 수 있는 주소는 맨 위 <b>이 파일이 하는 일</b> 칸에 적힌 곳뿐이며,
+    그 밖의 주소로는 브라우저가 요청을 막습니다(Content-Security-Policy). 막힌 이미지는 저장을 멈추지 않고
+    파일 안에 <b>내장 실패</b>로 남습니다.</p>
+  </div>
+
+  <footer class="foot">
+    <p>루나톡 대화 저장</p>
+  </footer>
+
+</div>
+<!-- SCRIPT:START -->
+<script src="paste-page-luna.js"></script>
+<!-- SCRIPT:END -->
+</body>
+</html>
